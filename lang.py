@@ -1,3 +1,4 @@
+#! /usr/bin/env python3
 import shlex
 import io
 import cmds
@@ -58,14 +59,14 @@ builtins = cmds.cmds
 #    return Bool(self.val == other.val)
 #  def neq(self, other):
 #    return Bool(self.val != other.val)
-#  
+#
 #  def incompatible_types(self):
 #    print('ERROR: operations between these two'
 #            ' types not supported! : {} & {}'.format(
 #              self.__class___.__name__, other.__class__.__name__
 #              ))
 #    exit(1)
-    
+
 #class String(MemoryObject):
 #  def sum(self, other):
 #    return String(self.val + other.val)
@@ -74,7 +75,7 @@ builtins = cmds.cmds
 #      return String(self.val * other.val)
 #    else:
 #      self.incompatible_types()
-    
+
 #class Num(MemoryObject):
 #  def sum(self, other):
 #    return Num(self.val + other.val)
@@ -85,34 +86,34 @@ builtins = cmds.cmds
 #      return String(other.val * self.val)
 #    else:
 #      self.incompatible_types()
-      
+
 #class Bool(MemoryObject):
 #  pass
-  
+
 #class Register(MemoryObject):
 #  pass
-  
+
 #class Function(MemoryObject):
 #  def __init__(self, content, args):
 #    self.content = content
 #    self.args = args.split()
 #    # print('%%{}%% %%{}%%'.format(self.content, self.args))
-#    
+#
 #  def call(self, args):
 #    mem = Memory()
 #    # print(self.args, [a.val for a in args])
 #    for i, a in enumerate(args):
 #      mem.add(self.args[i], a)
 #    return Program('').exec(self.content, mem)
-#    
+#
 #  def getval(self):
 #    return self
-    
+
 
 class BuiltInFunction(Function):
   def __init__(self):
     pass
-    
+
 
 #class Memory(object):
 #  def __init__(self, mem_dict={}):
@@ -123,7 +124,7 @@ class BuiltInFunction(Function):
 #      exit(1)
 #    val.name = key
 #    self.mem_dict[key] = val
-#    
+#
 #  def getval(self, key):
 #    try:
 #      return self.mem_dict[key].getval()
@@ -137,7 +138,7 @@ class BuiltInFunction(Function):
 #      except KeyError:
 #        print("VARIABLE DOES NOT EXIST IN MEMORY: {}".format(key))
 #        exit(1)
-      
+
 
 class Program(object):
   def __init__(self, filename):
@@ -168,27 +169,27 @@ class Program(object):
           buf.append(mem.getval(e['v']))
           if isinstance(buf[-1], Function):
             func = buf.pop(-1)
-            
+
             e = self.lexer.consume_next()
-            if e['k'] == '+LB': 
+            if e['k'] == '+LB':
               call_args = []
               s = self.get_next_symbol(mem)
               while s is not None:
                 call_args.append(s)
                 s = self.get_next_symbol(mem)
-            
+
               e = self.lexer.consume_next()
               if e['k'] != '+RB':
                 print('Syntax error: no closing bracket for args list!')
                 exit(1)
-            
+
               buf.append(func.call(call_args))
             else:
               # rewind
               self.lexer.charnum = e['coords'][0]
               buf.append(func)
-            
-            
+
+
       elif e['k'] == '=STR':
         buf.append(String(e['v'].strip('"')))
       elif e['k'] == '=NUM':
@@ -206,7 +207,7 @@ class Program(object):
           exit(1)
       else:
         val = False
-        
+
       # === Operations ===
       op = True
       if e['k'] == '+ADD':
@@ -229,7 +230,7 @@ class Program(object):
       #    exit(1)
       else:
         op = False
-        
+
       # === casting ===
       if val:
         before = self.lexer.charnum
@@ -248,28 +249,28 @@ class Program(object):
             self.lexer.charnum = cast['coords'][0]
         else:
           self.lexer.charnum = before
-        
+
       # === when to break ===
       if not op and not val:
         # rewind
         self.lexer.charnum = e['coords'][0]
         if buf and (type(buf[-1]) is not str):
           break
-          
+
         #print('RETURNING NONE: {v}'.format(**e))
         return None
-      
+
       # double operations are impossible
       # double values are just lists
       if len(buf) > 1:
-        
+
         if (op and (type(buf[-2]) is str)) \
         or (val and isinstance(buf[-2], MemoryObject)):
           # rewinid
           self.lexer.charnum = e['coords'][0]
           buf.pop(-1)
           break
-          
+
     def red(x, y):
       if type(y) is str:
         #if y == 's':
@@ -279,7 +280,7 @@ class Program(object):
           '*': 'mul',
           '=': 'eq',
           '!': 'neq',
-          
+
           '>': 'greater',
           '<': 'lesser',
         }
@@ -295,7 +296,7 @@ class Program(object):
     else:
       print('BUF IS NONE')
       exit(1)
-  
+
   def exec(self, line, mem):
     # print('--- line ---')
     line = line.strip('\n')
@@ -317,9 +318,9 @@ class Program(object):
           toks.append(e)
           # print('toksbuf: %s' % ([t['v'] for t in toks]))
           # print('{k:<20s} {v}'.format(**e))
-                  
-          # === HANDLERS === 
-          
+
+          # === HANDLERS ===
+
           # NEWLINE and SEMIC terminate expr
           if e['k'] == '+NEWLINE':
             toks = []
@@ -327,18 +328,18 @@ class Program(object):
           if e['k'] == '+SEMIC':
             toks = []
             continue
-            
+
           if e['k'] == '+EQUALS':
             mem.add(toks[-2]['v'], self.get_next_symbol(mem))
             continue
-                            
+
           # === OPENING TOKENS ===
           # @<reg_name>
           if e['k'] == '+AT':
             reg_name = self.lexer.consume_next()['v']
             content = mem.getval(reg_name).val
             continue
-          
+
           # ()
           elif e['k'] == '+LP':
             content = ''
@@ -355,15 +356,15 @@ class Program(object):
               content += ' ' + e['v']
               e = self.lexer.consume_next()
             continue
-            
+
           # reg <regname> ;
           elif e['v'] == 'reg':
             reg_name = self.lexer.consume_next()['v']
             mem.add(reg_name, Register(content.strip()))
             continue
-          
+
           elif e['v'] == 'do':
-            
+
             e = self.lexer.consume_next()
             while e['k'] != '+SEMIC' and e['k'] != '+NEWLINE':
               target = e
@@ -377,14 +378,14 @@ class Program(object):
               e = self.lexer.consume_next()
             # rewind
             self.lexer.charnum = e['coords'][0]
-            
+
             self.exec(content, mem)
-          
+
           # fun ... ;
           elif e['v'] == 'fun':
             args = ''
             def_name = self.lexer.consume_next()['v']
-            
+
             e = self.lexer.consume_next()
             while e['k'] != '+SEMIC' and e['k'] != '+NEWLINE':
               args += ' ' + e['v']
@@ -393,7 +394,7 @@ class Program(object):
             mem.add(def_name, Function(content.strip(), args))
             toks = []
             continue
-          
+
           # loop <mod> ... ;
           elif e['k'] == '+LOOP':
             mod = self.lexer.consume_next()['v']
@@ -406,7 +407,7 @@ class Program(object):
                 counter = '_'
               else:
                 counter = self.lexer.consume_next()['v']
-              
+
               for i in range(iterations):
                 mem.add(counter, Num(i))
                 self.exec(content, mem)
@@ -419,7 +420,7 @@ class Program(object):
                 e = self.lexer.consume_next()
               # rewind
               self.lexer.charnum = e['coords'][0]
-              
+
               #checker = self.get_next_symbol(mem).val
               checker += ';'
               checker = 'ret ' + checker
@@ -429,7 +430,7 @@ class Program(object):
             else:
               print('INVALID MOD FOR LOOP: {}'.format(mod))
               exit(1)
-            
+
           # if ... ;
           elif e['k'] == '+IF':
             do = self.get_next_symbol(mem).val
@@ -437,13 +438,13 @@ class Program(object):
             if do:
               self.exec(content, mem)
             continue
-            
+
           # ifnot ... ;
           elif e['k'] == '+IFNOT':
             before = self.lexer.charnum
             e = self.lexer.consume_next()
             if e and e['v'] == 'but':
-              
+
               do = self.get_next_symbol(mem).val
               last_last_if = last_if
               last_if = do
@@ -456,33 +457,33 @@ class Program(object):
               if not last_if:
                 self.exec(content, mem)
               continue
-            
+
           # ret ... ;
           elif e['v'] == 'ret':
             return self.get_next_symbol(mem)
-                    
-          # [] 
+
+          # []
           elif e['k'] == '+LB':
             call_args = []
             call_name = last_e['v']
-            
+
             s = self.get_next_symbol(mem)
             while s is not None:
               call_args.append(s)
               s = self.get_next_symbol(mem)
             #print(call_args)
-            
+
             e = self.lexer.consume_next()
             if e['k'] != '+RB':
               print('Syntax error: no closing bracket for args list!')
               exit(1)
-            
+
             mem.getval(call_name).call(call_args)
             continue
         else:
           break
     self.lexer = old_lexer
-    
+
   @staticmethod
   def eval_line(line, mem):
     cmd, *args = shlex.split(line)
@@ -494,7 +495,7 @@ class Program(object):
 
     with io.open(self.filename, 'r') as f:
       self.exec(''.join([l for l in f]), mem)
-      
+
 memory.setup(cmds.cmds, Program)
 
 if __name__ == '__main__':

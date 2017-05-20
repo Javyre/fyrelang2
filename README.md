@@ -1,5 +1,20 @@
-# Guessing game using the concept of registers/contents
+# Fyrelang2
+This is a language written in python in my free time at school in about two weeks...
 
+# Usage
+
+Because I am developing this on my iPad, the `.py` extension is necessary for the Pythonista app to recognize it.
+
+```shell
+./lang.py <program.fyr>
+```
+
+
+
+# Example code
+
+## Number guessing game using registers
+```
 # We use registers because they share the same
 # scope as the rest of the script.
 # Functions have their own memory object.
@@ -30,3 +45,4 @@ echo["Guess a number between "from" to "to]
 
 echo["right!"]
 echo["You have guessed the number in "numguesses" guesses!"]
+```
