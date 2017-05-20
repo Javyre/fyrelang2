@@ -1,0 +1,3 @@
+(echo[a ? 2 3])
+do a <- true;
+do a <- false;
