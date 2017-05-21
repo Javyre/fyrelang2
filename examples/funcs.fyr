@@ -1,0 +1,20 @@
+(echo["hello"])
+
+fun func1;
+reg reg1;
+
+func1[]
+@reg1 do;
+
+(echo["arg: "arg])
+
+fun func2 arg;
+reg reg2 arg;
+
+arg = 0
+
+func2["some value..."]
+echo[arg]
+
+@reg2 do arg <- "some value...";
+echo[arg]

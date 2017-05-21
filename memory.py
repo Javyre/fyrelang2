@@ -9,13 +9,15 @@ def setup(bins, rnr):
 
 
 class Memory(object):
-    def __init__(self, mem_dict={}):
-        self.mem_dict = mem_dict
+    def __init__(self, mem_dict=None):
+        self.mem_dict = {}
+        if mem_dict is not None:
+            self.mem_dict.update(mem_dict)
 
     def add(self, key, val):
         if not isinstance(val, MemoryObject):
-            print('memory item trying to insert isnt memory object!: {} (to: {})'.format(
-                val, key))
+            print('memory item trying to insert isnt'
+                  ' memory object!: {} (to: {})'.format(val, key))
             exit(1)
         val.name = key
         self.mem_dict[key] = val

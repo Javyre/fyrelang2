@@ -135,7 +135,7 @@ class Program(object):
                 buf.append(Bool(e['k'] == '+TRUE'))
 
             elif e['k'] == '+QUEST':
-                #checker = buf.pop(-1)
+                # checker = buf.pop(-1)
                 checker = self.reduce_tokens(buf)
                 buf = []
                 if isinstance(checker, MemoryObject):
