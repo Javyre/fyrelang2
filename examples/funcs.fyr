@@ -1,3 +1,7 @@
+# Differences and iteresting properties of functions and registers
+
+t="=== function/register difinition ==="; echo[t]
+
 (echo["hello"])
 
 fun func1;
@@ -5,6 +9,8 @@ reg reg1;
 
 func1[]
 @reg1 do;
+
+t="=== function/register scope ==="; echo[t]
 
 (echo["arg: "arg])
 
@@ -18,3 +24,46 @@ echo[arg]
 
 @reg2 do arg <- "some value...";
 echo[arg]
+
+t="=== last content and register reference ==="; echo[t]
+
+(echo["some content..."])
+(echo["this is the last content"])
+
+# when not specified, last content will be executed
+do;
+
+# to specify, content must be "registered"
+(echo["registered content..."]) reg content1;
+(echo["this is the last content"])
+
+@content1 do;
+
+# specifying is like rewriting the content in question...
+@content1
+
+# the last content here is @content1
+do;
+
+# we can even use the last content to define a function
+fun somefunction;
+# or
+@content1 fun somefunction;
+# or even (but keep in mind that the content is not evaluated until execution)
+(@content1 do;) fun somefunction;
+
+t="=== nested contents and locking ==="; echo[t]
+(
+    (echo["hello"]) reg c2;
+) reg c1;
+
+# if we try running @c2, we get an error:
+# in : @c2 do;
+# out: VARIABLE DOES NOT EXIST IN MEMORY: c2
+
+# we need to first run c1:
+@c1 do;
+@c2 do;
+
+# this is because the content of `c1` isn't evaluated until execution.
+# this means that only when we `@c1 do;` do we actually define `@c2`
