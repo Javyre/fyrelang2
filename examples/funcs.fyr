@@ -1,4 +1,4 @@
-# Differences and iteresting properties of functions and registers
+# Differences and interesting properties of functions and registers
 
 t="=== function/register definition ==="; echo[t]
 
@@ -15,7 +15,7 @@ t="=== function/register scope ==="; echo[t]
 (echo["arg: "arg])
 
 fun func2 arg;
-reg reg2 arg;
+reg reg2;
 
 arg = 0
 
