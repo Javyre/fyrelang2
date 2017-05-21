@@ -46,6 +46,9 @@ class MemoryObject(object):
 
     def getval(self):
         return self
+        
+    def getstr(self):
+        return str(self.val)
 
     def eq(self, other):
         return Bool(self.val == other.val)
@@ -72,8 +75,30 @@ class MemoryObject(object):
               ))
         exit(1)
 
+class List(MemoryObject):
+    def getstr(self):
+        out = ''
+        for e in self.val:
+            out += ' ' + e.getstr()
+        out = out.strip(' ')
+        out = '(: ' + out
+        out += ' :)'
+        return out
+        
+    def getitem(self, i):
+        return self.val[i]
 
 class String(MemoryObject):
+    def getstr(self):
+        # return '"' + self.val + '"'
+        return self.val
+        
+    def list(self):
+        out = []
+        for ss in self.val.split(' '):
+            out.append(String(ss))
+        return List(out)
+        
     def sum(self, other):
         return String(self.val + other.val)
 

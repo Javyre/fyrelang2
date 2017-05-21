@@ -1,6 +1,6 @@
 # Differences and iteresting properties of functions and registers
 
-t="=== function/register difinition ==="; echo[t]
+t="=== function/register definition ==="; echo[t]
 
 (echo["hello"])
 

@@ -1,0 +1,13 @@
+# Lists
+
+choices = (:"choice 1" "choice 2" "choice 3":)
+number = (:4 5 9 5 2:)
+mix = (:(:1 2 3:) 4 5:)
+
+# left evaluation precedence:
+echo[choices:mix:0:1]
+echo[choices:number:4]
+
+# output:
+# choice 3
+# choice 3

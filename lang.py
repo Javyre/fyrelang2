@@ -5,7 +5,14 @@ import cmds
 import lexer
 import functools
 
-from memory import Memory, MemoryObject, Function, Num, String, Bool, Register
+from memory import Memory,  \
+                   MemoryObject, \
+                   Function, \
+                   Num, \
+                   String, \
+                   Bool, \
+                   Register, \
+                   List
 import memory
 
 
@@ -29,11 +36,18 @@ lex_rules = [
     ('!$', r'#[^\n]+'),
     ('+QUEST', r'\?'),
     ('+AT', r'\@'),
+    
+    ('+LOPEN', r'\(\:'),
+    ('+LCLOSE', r'\:\)'),
+    
     ('+LP', r'\('),
     ('+RP', r'\)'),
+    
     ('+LB', r'\['),
     ('+RB', r'\]'),
-    ('+SEMIC', r';'),
+    
+    ('+SEMIC', r'\;'),
+    ('+COLON', r'\:'),
     ('+NEWLINE', r'[\n]'),
     ('+EQEQ', r'\=\='),
     ('+NEQ', r'\!\='),
@@ -87,6 +101,7 @@ class Program(object):
         while True:
             val = False
             op = False
+            last_pos = self.lexer.charnum
             e = self.lexer.consume_next()
             if not e and buf:
                 if type(buf[-1]) is str:
@@ -145,6 +160,23 @@ class Program(object):
                 else:
                     print('TERNARY NOT AFTER MEMORYOBJECT')
                     exit(1)
+            elif e['k'] == '+LOPEN':
+                list_content = []
+                e = self.lexer.consume_next()
+                while e['k'] != '+LCLOSE':
+                    self.lexer.charnum = e['coords'][0]
+                    le = self.get_next_symbol(mem)
+                    list_content.append(le)
+                    e = self.lexer.consume_next()
+                buf.append(List(list_content))
+            elif e['k'] == '+COLON':
+                lo = buf.pop(-1)
+                if isinstance(lo, List):
+                    buf.append(lo.getitem(self.get_next_symbol(mem).val))
+                else:
+                    buf.append(lo)
+                    self.lexer.charnum = last_pos
+                    break
             else:
                 val = False
 
@@ -181,6 +213,7 @@ class Program(object):
                         docast = {
                             'str': original.str,
                             'num': original.num,
+                            'list': original.list,
                         }
                         casted = docast[cast['v'][2:]]()
                         buf.append(casted)
@@ -207,7 +240,8 @@ class Program(object):
                 if (op and (type(buf[-2]) is str)) \
                         or (val and isinstance(buf[-2], MemoryObject)):
                     # rewinid
-                    self.lexer.charnum = e['coords'][0]
+                    # self.lexer.charnum = e['coords'][0]
+                    self.lexer.charnum = last_pos
                     buf.pop(-1)
                     break
 
