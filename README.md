@@ -3,10 +3,10 @@ This is a language written in python in my free time at school in about two week
 
 # Usage
 
-Because I am developing this on my iPad, the `.py` extension is necessary for the Pythonista app to recognize it.
+Because I am developing this on my iPad, the `.py` extension is necessary for the Pythonista app to recognize it. But you can use the symlinked `./fyrelang`:
 
 ```shell
-./lang.py <program.fyr>
+./fyrelang <path/to/program.fyr>
 ```
 
 
