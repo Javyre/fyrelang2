@@ -22,8 +22,13 @@ echo["Guess a number between "from" to "to]
 
     # give hint
     (echo["number is "adj" than "guess]) reg hint;
-    (@hint do adj <- "greater";) if randnum > guess $$num;
-    (@hint do adj <- "smaller";) ifnot;
+    
+    # with ternary...
+    @hint do adj <- randnum > guess $$num ? "greater" "smaller"
+    
+    # or with if/ifnot but/ifnot...
+    # (@hint do adj <- "greater";) if randnum > guess $$num;
+    # (@hint do adj <- "smaller";) ifnot;
 
     @doguess do;
 ) loop while guess $$num != randnum;

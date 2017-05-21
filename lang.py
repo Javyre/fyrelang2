@@ -59,6 +59,29 @@ class Program(object):
         self.mem = Memory()
         self.lexer = lexer.Lexer(lex_rules)
 
+    def reduce_tokens(self, buf):
+        def red(x, y):
+            if type(y) is str:
+                # if y == 's':
+                #  return x.str()
+                ops = {
+                    '+': 'sum',
+                    '*': 'mul',
+                    '=': 'eq',
+                    '!': 'neq',
+
+                    '>': 'greater',
+                    '<': 'lesser',
+                }
+                return (x, ops[y])
+            if type(x) is tuple:
+                return getattr(x[0], x[1])(y)
+            else:
+                print('WEIRDER ERROR')
+                exit(1)
+        buf = functools.reduce(red, buf)
+        return buf
+
     def get_next_symbol(self, mem):
         buf = []
         while True:
@@ -94,7 +117,8 @@ class Program(object):
                             e = self.lexer.consume_next()
                             if e['k'] != '+RB':
                                 print(
-                                    'Syntax error: no closing bracket for args list!')
+                                    'Syntax error: no closing bracket for '
+                                    'args list!')
                                 exit(1)
 
                             buf.append(func.call(call_args))
@@ -109,8 +133,11 @@ class Program(object):
                 buf.append(Num(int(e['v'])))
             elif e['k'] in ['+TRUE', '+FALSE']:
                 buf.append(Bool(e['k'] == '+TRUE'))
+
             elif e['k'] == '+QUEST':
-                checker = buf.pop(-1)
+                #checker = buf.pop(-1)
+                checker = self.reduce_tokens(buf)
+                buf = []
                 if isinstance(checker, MemoryObject):
                     t = self.get_next_symbol(mem)
                     f = self.get_next_symbol(mem)
@@ -184,26 +211,7 @@ class Program(object):
                     buf.pop(-1)
                     break
 
-        def red(x, y):
-            if type(y) is str:
-                # if y == 's':
-                #  return x.str()
-                ops = {
-                    '+': 'sum',
-                    '*': 'mul',
-                    '=': 'eq',
-                    '!': 'neq',
-
-                    '>': 'greater',
-                    '<': 'lesser',
-                }
-                return (x, ops[y])
-            if type(x) is tuple:
-                return getattr(x[0], x[1])(y)
-            else:
-                print('WEIRDER ERROR')
-                exit(1)
-        buf = functools.reduce(red, buf)
+        buf = self.reduce_tokens(buf)
         if buf:
             return buf
         else:
@@ -283,7 +291,9 @@ class Program(object):
                         target = e
                         arrow = self.lexer.consume_next()
                         val = self.get_next_symbol(mem)
-                        if arrow['k'] == '+ARROWL' and target['k'] == '=IDENTIFIER':
+                        if arrow['k'] == '+ARROWL' and \
+                                target['k'] == '=IDENTIFIER':
+
                             mem.add(target['v'], val)
                         else:
                             print('INVALID DO ARGUMENTS')
