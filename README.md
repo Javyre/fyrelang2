@@ -12,7 +12,7 @@ Because I am developing this on my iPad, the `.py` extension is necessary for th
 
 
 # Example code
-Try some of the example code in `./examples/`!
+Try some of the example code in [`./examples/`](examples)!
 
 ## Number guessing game using registers
 ```
