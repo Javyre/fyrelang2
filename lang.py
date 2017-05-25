@@ -37,6 +37,9 @@ lex_rules = [
     ('+QUEST', r'\?'),
     ('+AT', r'\@'),
     
+    ('+DOLLAR', r'\$'),
+    ('+AMP', r'\&'),
+    
     ('+LOPEN', r'\(\:'),
     ('+LCLOSE', r'\:\)'),
     
@@ -48,14 +51,19 @@ lex_rules = [
     
     ('+SEMIC', r'\;'),
     ('+COLON', r'\:'),
-    ('+NEWLINE', r'[\n]'),
+    ('+NEWLINE', r'\n'),
     ('+EQEQ', r'\=\='),
     ('+NEQ', r'\!\='),
     ('+GREATER', r'\>'),
     ('+LESSER', r'\<'),
     ('+EQUALS', r'\='),
+    
     ('+ADD', r'\+'),
+    ('+SUB', r'\-'),
     ('+MUL', r'\*'),
+    ('+DIV', r'\/'),
+    ('+MOD', r'\%'),
+    
     ('!!', r'.'),
 ]
 
@@ -71,16 +79,28 @@ class Program(object):
     def __init__(self, filename):
         self.filename = filename
         self.mem = Memory()
-        self.lexer = lexer.Lexer(lex_rules)
+        self.set_lexer(lexer.Lexer(lex_rules))
+        
+    def set_lexer(self, l):
+        self.lexer = l
+        lexer.current_lexer = l
 
     def reduce_tokens(self, buf):
         def red(x, y):
+            if type(x) is tuple:
+                return getattr(x[0], x[1])(y)
             if type(y) is str:
                 # if y == 's':
                 #  return x.str()
                 ops = {
                     '+': 'sum',
+                    '-': 'sub',
+                    
                     '*': 'mul',
+                    '/': 'div',
+                    
+                    '%': 'mod',
+                    
                     '=': 'eq',
                     '!': 'neq',
 
@@ -88,8 +108,6 @@ class Program(object):
                     '<': 'lesser',
                 }
                 return (x, ops[y])
-            if type(x) is tuple:
-                return getattr(x[0], x[1])(y)
             else:
                 print('WEIRDER ERROR')
                 exit(1)
@@ -131,7 +149,7 @@ class Program(object):
 
                             e = self.lexer.consume_next()
                             if e['k'] != '+RB':
-                                print(
+                                self.lexer.err(
                                     'Syntax error: no closing bracket for '
                                     'args list!')
                                 exit(1)
@@ -146,7 +164,7 @@ class Program(object):
                 buf.append(String(e['v'].strip('"')))
             elif e['k'] == '=NUM':
                 buf.append(Num(int(e['v'])))
-            elif e['k'] in ['+TRUE', '+FALSE']:
+            elif e['k'] in ('+TRUE', '+FALSE'):
                 buf.append(Bool(e['k'] == '+TRUE'))
 
             elif e['k'] == '+QUEST':
@@ -177,15 +195,36 @@ class Program(object):
                     buf.append(lo)
                     self.lexer.charnum = last_pos
                     break
+            # === Scope in / Scope out ===
+            elif e['k'] == '+DOLLAR':
+                buf.append(self.get_next_symbol(mem))
+            elif e['k'] == '+AMP':
+                break
             else:
                 val = False
+                
+            # === Negation ===
+            #if ((len(buf) == 2 or not isinstance(buf[-3], MemoryObject)) \
+            #    and buf[-2] == '-' and val):
+            #    if len(buf) == 2
+            if (len(buf) == 2 and buf[-2] == '-') or\
+                (len(buf) > 2 and not isinstance(buf[-3], MemoryObject) and buf[-2] == '-'):
+                    mo = buf.pop(-1)
+                    buf.pop(-1)
+                    buf.append(mo.neg())
 
             # === Operations ===
             op = True
             if e['k'] == '+ADD':
                 buf.append('+')
+            elif e['k'] == '+SUB':
+                buf.append('-')
             elif e['k'] == '+MUL':
                 buf.append('*')
+            elif e['k'] == '+DIV':
+                buf.append('/')
+            elif e['k'] == '+MOD':
+                buf.append('%')
             elif e['k'] == '+EQEQ':
                 buf.append('=')
             elif e['k'] == '+NEQ':
@@ -222,6 +261,8 @@ class Program(object):
                         self.lexer.charnum = cast['coords'][0]
                 else:
                     self.lexer.charnum = before
+            
+            
 
             # === when to break ===
             if not op and not val:
@@ -233,11 +274,11 @@ class Program(object):
                 # print('RETURNING NONE: {v}'.format(**e))
                 return None
 
-            # double operations are impossible
+            # double operations are impossible (except for negations)
             # double values are just lists
             if len(buf) > 1:
 
-                if (op and (type(buf[-2]) is str)) \
+                if (op and (type(buf[-2]) is str and buf[-1] != '-')) \
                         or (val and isinstance(buf[-2], MemoryObject)):
                     # rewinid
                     # self.lexer.charnum = e['coords'][0]
@@ -246,18 +287,31 @@ class Program(object):
                     break
 
         buf = self.reduce_tokens(buf)
+        if type(buf) is tuple:
+            self.lexer.err('BUF IS TUPLE: {}'.format(buf))
         if buf:
             return buf
         else:
-            print('BUF IS NONE')
+            self.lexer.err('BUF IS NONE: {}'.format(buf))
             exit(1)
 
-    def exec(self, line, mem):
+    def exec(self, line, mem, scope_name=None):
+        def get_scope_name(section_name):
+            pos = self.lexer.getpos(self.lexer.charnum)
+            pos['linum'] += 1
+            return section_name+' at {linum}:{charnum}'.format(**pos)
+        
+        if scope_name:
+            sname = scope_name
+        else:
+            sname = ''
+        
         # print('--- line ---')
-        line = line.strip('\n')
+        # line = line.strip('\n')
         old_lexer = self.lexer
-        self.lexer = lexer.Lexer(lex_rules)
+        self.set_lexer(lexer.Lexer(lex_rules))
         self.lexer.lex(line)
+        self.lexer.scope_name = sname
         toks = []
         def_name = ''
         content = ''
@@ -277,10 +331,7 @@ class Program(object):
                 # === HANDLERS ===
 
                 # NEWLINE and SEMIC terminate expr
-                if e['k'] == '+NEWLINE':
-                    toks = []
-                    continue
-                if e['k'] == '+SEMIC':
+                if e['k'] in ('+NEWLINE', '+SEMIC'):
                     toks = []
                     continue
 
@@ -315,13 +366,14 @@ class Program(object):
                 # reg <regname> ;
                 elif e['v'] == 'reg':
                     reg_name = self.lexer.consume_next()['v']
-                    mem.add(reg_name, Register(content.strip()))
+                    mem.add(reg_name, Register(content.strip(), 
+                                      scope_name=get_scope_name('reg')))
                     continue
 
                 elif e['v'] == 'do':
 
                     e = self.lexer.consume_next()
-                    while e['k'] != '+SEMIC' and e['k'] != '+NEWLINE':
+                    while e['k'] not in ('+SEMIC', '+NEWLINE'):
                         target = e
                         arrow = self.lexer.consume_next()
                         val = self.get_next_symbol(mem)
@@ -336,7 +388,7 @@ class Program(object):
                     # rewind
                     self.lexer.charnum = e['coords'][0]
 
-                    self.exec(content, mem)
+                    self.exec(content, mem, scope_name=get_scope_name('do'))
 
                 # fun ... ;
                 elif e['v'] == 'fun':
@@ -344,16 +396,22 @@ class Program(object):
                     def_name = self.lexer.consume_next()['v']
 
                     e = self.lexer.consume_next()
-                    while e['k'] != '+SEMIC' and e['k'] != '+NEWLINE':
+                    while e['k'] not in ('+SEMIC', '+NEWLINE'):
                         args += ' ' + e['v']
                         e = self.lexer.consume_next()
-
-                    mem.add(def_name, Function(content.strip(), args))
+                        
+                    # rewind
+                    self.lexer.charnum = e['coords'][0]
+                        
+                    mem.add(def_name, Function(content.strip(), args, 
+                                               scope_name=get_scope_name('fun')))
                     toks = []
                     continue
 
                 # loop <mod> ... ;
                 elif e['k'] == '+LOOP':
+                    scope_name = get_scope_name('loop')
+                    
                     mod = self.lexer.consume_next()['v']
                     if mod == 'times':
                         iterations = self.get_next_symbol(mem).val
@@ -367,12 +425,14 @@ class Program(object):
 
                         for i in range(iterations):
                             mem.add(counter, Num(i))
-                            self.exec(content, mem)
+                            self.exec(content, mem, scope_name=scope_name)
                         continue
                     elif mod == 'while':
                         checker = ''
+                        checker_sname = get_scope_name('while checker')
+
                         e = self.lexer.consume_next()
-                        while e['k'] not in ['+SEMIC', '+NEWLINE']:
+                        while e['k'] not in ('+SEMIC', '+NEWLINE'):
                             checker += ' ' + e['v']
                             e = self.lexer.consume_next()
                         # rewind
@@ -381,8 +441,26 @@ class Program(object):
                         # checker = self.get_next_symbol(mem).val
                         checker += ';'
                         checker = 'ret ' + checker
-                        while Program('').exec(checker, mem).val is True:
-                            self.exec(content, mem)
+                        while Program('').exec(checker, mem,
+                                               scope_name=checker_sname
+                                               ).val is True:
+                            self.exec(content, mem, scope_name=scope_name)
+                        continue
+                    elif mod == 'each':
+                        iterator = self.get_next_symbol(mem)
+                        last_pos = self.lexer.charnum
+                        arrow = self.lexer.consume_next()
+
+                        if arrow['k'] != '+ARROWR':
+                            # rewind
+                            self.lexer.charnum = last_pos
+                            counter = '_'
+                        else:
+                            counter = self.lexer.consume_next()['v']
+
+                        for v in iterator.val:
+                            mem.add(counter, v)
+                            self.exec(content, mem, scope_name=scope_name)
                         continue
                     else:
                         print('INVALID MOD FOR LOOP: {}'.format(mod))
@@ -393,11 +471,12 @@ class Program(object):
                     do = self.get_next_symbol(mem).val
                     last_if = do
                     if do:
-                        self.exec(content, mem)
+                        self.exec(content, mem, scope_name=get_scope_name('if'))
                     continue
 
                 # ifnot ... ;
                 elif e['k'] == '+IFNOT':
+                    scope_name = get_scope_name('ifnot')
                     before = self.lexer.charnum
                     e = self.lexer.consume_next()
                     if e and e['v'] == 'but':
@@ -406,13 +485,13 @@ class Program(object):
                         last_last_if = last_if
                         last_if = do
                         if do and not last_last_if:
-                            self.exec(content, mem)
+                            self.exec(content, mem, scope_name=scope_name)
                         continue
                     else:
                         # rewind
                         self.lexer.charnum = before
                         if not last_if:
-                            self.exec(content, mem)
+                            self.exec(content, mem, scope_name=scope_name)
                         continue
 
                 # ret ... ;
@@ -422,7 +501,8 @@ class Program(object):
                 # []
                 elif e['k'] == '+LB':
                     call_args = []
-                    call_name = last_e['v']
+                    #call_name = last_e['v']
+                    call_name = toks.pop(-2)['v']
 
                     s = self.get_next_symbol(mem)
                     while s is not None:
@@ -432,14 +512,15 @@ class Program(object):
 
                     e = self.lexer.consume_next()
                     if e['k'] != '+RB':
-                        print('Syntax error: no closing bracket for args list!')
+                        self.lexer.err('Syntax error: '
+                                       'no closing bracket for args list!')
                         exit(1)
 
                     mem.getval(call_name).call(call_args)
                     continue
             else:
                 break
-        self.lexer = old_lexer
+        self.set_lexer(old_lexer)
 
     @staticmethod
     def eval_line(line, mem):
@@ -451,7 +532,7 @@ class Program(object):
             mem = self.mem
 
         with io.open(self.filename, 'r') as f:
-            self.exec(''.join([l for l in f]), mem)
+            self.exec(''.join([l for l in f]), mem, scope_name='Main')
 
 
 memory.setup(cmds.cmds, Program)
@@ -459,7 +540,9 @@ memory.setup(cmds.cmds, Program)
 if __name__ == '__main__':
     import sys
     try:
-        Program(sys.argv[1]).run()
+        prgpath = sys.argv[1]
     except IndexError:
         print('NOT ENOUGH ARGUMENTS TO INTERPRETER')
         exit(1)
+    else:
+        Program(prgpath).run()

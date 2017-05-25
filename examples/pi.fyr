@@ -1,0 +1,19 @@
+# simple pi calculator
+
+numsides = 0
+
+diameter = input["diameter: "] $$num
+step = input["step: "] $$num
+
+(
+numsides = numsides + step
+
+# side length
+side = math_tan[360/numsides/2]* $ diameter/2 & *2
+
+# perimeter / diameter
+pi = side*numsides/diameter
+
+# (echo[pi]) if numsides % 100 == 0:
+echo[pi]
+) loop while true;

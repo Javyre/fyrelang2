@@ -84,6 +84,29 @@ class List(MemoryObject):
         out = '(: ' + out
         out += ' :)'
         return out
+    
+    def append(self, item):
+        self.val.append(item)
+        
+    def sum(self, other):
+        self.append(other)
+        return self
+        
+    def eq(self, other):
+        if isinstance(other, List):
+            # length
+            if len(self.val) != len(other.val):
+                return Bool(False)
+                
+            # content
+            for a, b in zip(self.val, other.val):
+                if not a.eq(b):
+                    return Bool(False)
+            
+            return Bool(True)
+        else:
+            return False
+            
         
     def getitem(self, i):
         return self.val[i]
@@ -112,6 +135,9 @@ class String(MemoryObject):
 class Num(MemoryObject):
     def sum(self, other):
         return Num(self.val + other.val)
+    
+    def sub(self, other):
+        return Num(self.val - other.val)
 
     def mul(self, other):
         if isinstance(other, Num):
@@ -120,6 +146,17 @@ class Num(MemoryObject):
             return String(other.val * self.val)
         else:
             self.incompatible_types(other)
+            
+    def div(self, other):
+        if isinstance(other, Num):
+            return Num(self.val/other.val)
+            
+    def mod(self, other):
+        if isinstance(other, Num):
+            return Num(self.val%other.val)
+            
+    def neg(self):
+        return Num(-self.val)
 
 
 class Bool(MemoryObject):
@@ -127,11 +164,14 @@ class Bool(MemoryObject):
 
 
 class Register(MemoryObject):
-    pass
+    def __init__(self, content, scope_name=None):
+        self.val = content
+        self.scope_name = scope_name or 'Register (undefined scope)'
 
 
 class Function(MemoryObject):
-    def __init__(self, content, args):
+    def __init__(self, content, args, scope_name=None):
+        self.scope_name = scope_name or 'Function (undefined scope)'
         self.content = content
         self.args = args.split()
         self.runner = runner
@@ -142,7 +182,7 @@ class Function(MemoryObject):
         # print(self.args, [a.val for a in args])
         for i, a in enumerate(args):
             mem.add(self.args[i], a)
-        return runner('').exec(self.content, mem)
+        return runner('').exec(self.content, mem, scope_name=self.scope_name)
 
     def getval(self):
         return self

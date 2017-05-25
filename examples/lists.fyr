@@ -11,3 +11,10 @@ echo[choices:number:4]
 # output:
 # choice 3
 # choice 3
+
+# loop through elements of list
+echo[]
+(echo[c]) loop each choices -> c;
+echo[choices:input["your choice: "] $$num]
+
+

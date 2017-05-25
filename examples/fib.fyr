@@ -1,0 +1,10 @@
+# edit list while looping through it
+# fibonacci sequence
+fib = (:1 1:)
+
+last = 0
+(
+    fib = fib + (:$fib:-2& + $fib:-1&:):0
+    echo[fib]
+    echo[current]
+) loop each fib -> current;
